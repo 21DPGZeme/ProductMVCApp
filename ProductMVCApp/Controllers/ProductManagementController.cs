@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,7 +28,7 @@ namespace ProductMVCApp.Controllers
         // GET: Products
         public async Task<IActionResult> Index()
         {
-            return View(_mapper.Map<ICollection<Product>, ICollection<ProductModel>>(await _context.Products.ToListAsync()));
+            return View(_mapper.Map<ICollection<Product>, ICollection<ProductModel>>(await _context.Products.Where(p => !p.IsDeleted).ToListAsync()));
         }
 
         // GET: Products/Details/5
@@ -67,8 +66,21 @@ namespace ProductMVCApp.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(_mapper.Map<Product>(productModel));
+                DateTime time = DateTime.Now;
+                var currentUser = await _userManager.GetUserAsync(User);
+                var newProduct = _mapper.Map<Product>(productModel);
+
+                await _context.AddAsync(newProduct);
                 await _context.SaveChangesAsync();
+
+                ProjectAudit productAudit = new ProjectAudit() { ProductId = newProduct.Id,
+                                                                 Property = ProductProperty.Product,
+                                                                 TimeChanged = time,
+                                                                 UserId = currentUser.Id,
+                                                                 Value = "Created" };
+                await _context.AddAsync(productAudit);
+                await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
             return View(productModel);
@@ -177,7 +189,16 @@ namespace ProductMVCApp.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            _context.Products.Remove(await _context.Products.FindAsync(id));
+            DateTime time = DateTime.Now;
+            var currentUser = await _userManager.GetUserAsync(User);
+            var productToDelete = await _context.Products.FindAsync(id);
+            productToDelete.IsDeleted = true;
+
+            ProjectAudit productAudit = new ProjectAudit() { ProductId = id, Property = ProductProperty.Product, TimeChanged = time, UserId = currentUser.Id, Value = "Deleted" };
+            await _context.AddAsync(productAudit);
+            await _context.SaveChangesAsync();
+
+            _context.Products.Update(productToDelete);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
@@ -188,7 +209,12 @@ namespace ProductMVCApp.Controllers
         {
             DateTime fromDateTime = DateTime.Parse(fromDate);
             DateTime toDateTime = DateTime.Parse(toDate);
-            var filteredAudit = _context.ProjectAudits.Where(dt => (DateTime.Compare(fromDateTime, dt.TimeChanged) <= 0 && DateTime.Compare(dt.TimeChanged, toDateTime) <= 0)).ToListAsync();
+            var filteredAudit = await _context.ProjectAudits.Where(dt => (DateTime.Compare(fromDateTime, dt.TimeChanged) <= 0 && DateTime.Compare(dt.TimeChanged, toDateTime) <= 0)).ToListAsync();
+            foreach (var x in filteredAudit)
+            {
+                x.User = await _context.Users.FirstOrDefaultAsync(u => u.Id == x.UserId);
+                x.Product = await _context.Products.FirstOrDefaultAsync(p => p.Id == x.ProductId);
+            }
             var json = JsonSerializer.Serialize(filteredAudit);
             return Content(json, "application/json");
         }

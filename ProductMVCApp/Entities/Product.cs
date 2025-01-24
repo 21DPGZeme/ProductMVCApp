@@ -17,5 +17,8 @@ namespace ProductMVCApp.Entities
 
         [Required]
         public decimal Price { get; set; }
+
+        [Required]
+        public bool IsDeleted { get; set; } = false;
     }
 }

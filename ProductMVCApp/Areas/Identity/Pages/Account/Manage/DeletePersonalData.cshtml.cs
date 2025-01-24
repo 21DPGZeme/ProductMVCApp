@@ -86,12 +86,15 @@ namespace ProductMVCApp.Areas.Identity.Pages.Account.Manage
                 }
             }
 
-            var result = await _userManager.DeleteAsync(user);
+
+
+            await _userManager.SetLockoutEnabledAsync(user, true);
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
             var userId = await _userManager.GetUserIdAsync(user);
-            if (!result.Succeeded)
-            {
-                throw new InvalidOperationException($"Unexpected error occurred deleting user.");
-            }
+            //if (!result.Succeeded)
+            //{
+            //    throw new InvalidOperationException($"Unexpected error occurred deleting user.");
+            //}
 
             await _signInManager.SignOutAsync();
 

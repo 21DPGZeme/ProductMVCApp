@@ -6,6 +6,7 @@ namespace ProductMVCApp.Entities
 {
     public enum ProductProperty
     {
+        Product,
         Title,
         Quantity,
         Price
@@ -17,17 +18,13 @@ namespace ProductMVCApp.Entities
         [Key]
         public int Id { get; set; }
 
-        [Required]
-        public string UserId { get; set; }
+        public string? UserId { get; set; }
 
-        [Required]
         [ForeignKey(nameof(UserId))]
         public IdentityUser User { get; set; }
 
-        [Required]
-        public int ProductId { get; set; }
+        public int? ProductId { get; set; }
 
-        [Required]
         [ForeignKey(nameof(ProductId))]
         public Product Product { get; set; }
 

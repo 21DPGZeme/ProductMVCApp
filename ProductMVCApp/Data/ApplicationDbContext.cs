@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using ProductMVCApp.Entities;
-using ProductMVCApp.Data;
-using Microsoft.Extensions.Options;
-using ProductMVCApp.Models;
 
 namespace ProductMVCApp.Data
 {
@@ -64,12 +61,14 @@ namespace ProductMVCApp.Data
             modelBuilder.Entity<ProjectAudit>()
                 .HasOne(pa => pa.User)
                 .WithMany()
-                .HasForeignKey(pa => pa.UserId);
+                .HasForeignKey(pa => pa.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ProjectAudit>()
                 .HasOne(pa => pa.Product)
                 .WithMany()
-                .HasForeignKey(pa => pa.ProductId);
+                .HasForeignKey(pa => pa.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
         public DbSet<Product> Products { get; set; }
