@@ -1,0 +1,132 @@
+﻿@model IEnumerable<ProductMVCApp.Models.ProductModel>
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Configuration
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+@inject IConfiguration Configuration
+
+@{
+    ViewData["Title"] = "Index";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var currentRole = await UserManager.GetRolesAsync(currentUser);
+}
+
+<h1>Product Management</h1>
+@if (currentRole.Contains("Admin"))
+{
+    <div style="display: flex; justify-content: space-around">
+        <p>
+            <a asp-action="Create" class="btn btn-primary">Create New Product</a>
+        </p>
+        <p style="margin-left: auto; margin-right: 0;">
+            <a onclick="openAuditModal()" class="btn btn-primary">View Audit</a>
+        </p>
+    </div>
+    
+}
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                #
+            </th>
+            <th>
+                Item name
+            </th>
+            <th>
+                Quantity
+            </th>
+            <th>
+                Price per item
+            </th>
+            <th>
+                Total price with VAT
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model) {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Id)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Title)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Quantity)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Price)
+                </td>
+                <td>
+                    $@(Math.Round((item.Quantity * item.Price) * (1 + Configuration.GetValue<decimal>("VAT")), 2))
+                </td>
+                @if (currentRole.Contains("Admin"))
+                {
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-secondary">Edit</a> |
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-secondary">Details</a> |
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-secondary">Delete</a>
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div id="auditModalBg" class="modalBackground" onclick="closeAuditModal();"></div>
+<div id="auditModal" class="col-md">
+    <form asp-action="Audit" method="get">
+        <h3>
+            Select date range for audit
+        </h3>
+        <div class="form-group">
+            <input name="fromDate" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required /> -
+            <input name="toDate" type="date" value="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="form-group" style="margin-top: 10px">
+            <input type="submit" value="Show" class="btn btn-primary" />
+            <button type="button" onclick="closeAuditModal()" class="btn btn-secondary">Close</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function openAuditModal() {
+        document.getElementById('auditModal').style.display = 'flex';
+        document.getElementById('auditModalBg').style.display = 'flex';
+    }
+
+    function closeAuditModal() {
+        document.getElementById('auditModal').style.display = 'none';
+        document.getElementById('auditModalBg').style.display = 'none';
+    }
+</script>
+
+<style>
+    #auditModal {
+        border-radius: 5px;
+        margin: 0 auto;
+        display: none;
+        position: fixed;
+        background: white;
+        padding: 10px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .modalBackground {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: #000;
+        opacity: 0.3;
+        display: none;
+        z-index: 0;
+    }
+</style>
